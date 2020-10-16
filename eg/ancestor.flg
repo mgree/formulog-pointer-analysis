@@ -1,0 +1,45 @@
+(* EDB i.e., input relations, i.e., facts *)
+
+@external
+input parent(string, string)
+
+(*
+parent("sylvia", "aviva").
+parent("sylvia", "debra").
+parent("sylvia", "rafael").
+
+parent("aviva", "david").
+parent("aviva", "michael").
+parent("aviva", "benjamin").
+
+parent("debra", "emmett").
+parent("debra", "hannah").
+
+parent("rafael", "elliot").
+parent("rafael", "samuel").
+*)
+
+(* IDB, i.e., rules, i.e., things we've learned *)
+
+output ancestor(string, string).
+
+ancestor(A, B) :- parent(A, B).
+ancestor(A, B) :- parent(A, C), ancestor(C, B).
+
+output sibling(string, string).
+
+sibling(A, B) :- parent(C, A), parent(C, B), A != B.
+
+output cousin(string, string).
+
+cousin(A, B) :-
+  parent(Ap, A),
+  parent(Bp, B),
+  sibling(Ap, Bp).
+
+(* who is the parent of john? *)
+(* TODO: add query syntax to tutorial *)
+(* TODO: -D options part of the jar itself, so we have a nice executable? *)
+(* :- parent(_, "john"). *)
+
+:- cousin(_, "michael").
