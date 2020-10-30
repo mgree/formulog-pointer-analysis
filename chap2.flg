@@ -1,0 +1,126 @@
+(* original program *)
+
+(*
+void fun1() {
+  Object a1 = new A1(); // allocation site 0
+  Object b1 = id(a1); // invocation site 0
+}
+
+void fun2() {
+  Object a2 = new A2(); // allocation site 1
+  Object b2 = id(a2); // invocation site 1
+}
+
+Object id(Object a) { return a; }
+*)
+
+(* variable name *)
+type var = string
+
+(* allocation site, i.e., source location *)
+type heap = bv[32]
+
+(* method names *)
+type method = string
+
+(* field names *)
+type field = string
+
+(* method signatures *)
+(* TODO 2020-10-30 MMG need to track type info, too *)
+type sig = string
+
+(* method invocations/callsites *)
+type invocation = bv[32]
+
+(* argument index *)
+type arg = bv[32]
+
+(* edb rules *)
+@external
+input alloc(var, heap, method).
+
+@external
+input move(var, var).
+
+@external
+input load(var, var, field).
+
+@external
+input store(var, field, var).
+
+@external
+input vcall(var, sig, invocation, method).
+
+@external
+input formal_arg(method, arg, var).
+
+@external
+input formal_return(method, var).
+
+@external
+input actual_arg(invocation, arg, var).
+
+@external
+input actual_return(invocation, var).
+
+@external
+input static_call(invocation, method).
+
+@external
+input in_method(invocation, method).
+
+@external
+input entry_point(method).
+
+output var_points_to(var, heap).
+output call_graph(invocation, method).
+output field_points_to(heap, field, heap).
+output interproc_assign(var, var).
+output reachable(method).
+
+call_graph(I, M) :- static_call(I, M).
+
+reachable(M) :- entry_point(M).
+reachable(M) :-
+  reachable(N),
+  in_method(I, N),
+  call_graph(I, M).
+
+(* V = new H *)
+var_points_to(V, H) :-
+  reachable(M),
+  alloc(V, H, M).
+
+(* Vto = Vfrom *)
+var_points_to(Vto, H) :-
+  move(Vto, Vfrom),
+  var_points_to(Vfrom, H).
+
+(* Vbase.F = Vfrom *)
+field_points_to(Hbase, F, H) :-
+  store(Vbase, F, Vfrom),
+  var_points_to(Vfrom, H),
+  var_points_to(Vbase, Hbase).
+
+(* Vto = Vbase.F *)
+var_points_to(Vto, H) :-
+  load(Vto, Vbase, F),
+  var_points_to(Vbase, Hbase),
+  field_points_to(Hbase, F, H).
+
+(* M(... Vfrom ... ) *)
+interproc_assign(Vto, Vfrom) :-
+  call_graph(I, M),
+  formal_arg(M, N, Vto),
+  actual_arg(I, N, Vfrom).
+
+(* Vto = M(...) *)
+interproc_assign(Vto, Vfrom) :-
+  call_graph(I, M),
+  formal_return(M, Vfrom),
+  actual_return(I, Vto).
+
+var_points_to(Vto, H) :-
+  interproc_assign(Vto, Vfrom),
+  var_points_to(Vfrom, H).
