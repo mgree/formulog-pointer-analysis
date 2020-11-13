@@ -1,0 +1,172 @@
+(* original program *)
+
+(*
+public class Pets {
+   String name;
+   int age;
+   
+   public class Dog extends Pets {
+      bool is_sitting;
+
+      public Dog(String name, int age) {
+         this.name = name;
+	 this.age = age;
+	 this.is_sitting = false;
+      }
+   }
+
+   public class Cat extends Pets {
+      public Cat(String name, int age) {
+         this.name = name;
+	 this.age = age;
+      }
+   }
+
+   public String toString() {
+      return "My pet's name is: " + name + " and they are " + age + " years old."
+
+   public static void main(String[] args) {
+      Dog my_dog = new Dog("Roxy", 11); // allocation site 0
+      Cat my_cat = new Cat("Summer", 4);
+
+      System.out.println(my_dog); // invocation site 0
+      System.out.println(my_cat); // invocation site 1
+   }
+}
+*)
+
+(* variable name *)
+type var = string
+
+(* allocation site, i.e., source location *)
+type heap = bv[32]
+
+(* method names *)
+type method = string
+
+(* field names *)
+type field = string
+
+(* method signatures *)
+type sig = string
+
+(* method invocations/callsites *)
+type invocation = bv[32]
+
+(* argument index *)
+type arg = bv[32]
+
+
+(* edb rules *)
+@external
+input alloc(var, heap, method).
+
+@external
+(* not necessary *)
+input move(var, var).
+
+@external
+(* not necessary *)
+input load(var, var, field).
+
+@external
+(* not necessary *)
+input store(var, field, var).
+
+@external
+(* not necessary *)
+input vcall(var, sig, invocation, method).
+
+@external
+input formal_arg(meth, arg, var).
+
+@external
+input formal_return(method, var).
+
+@external
+input actual_arg(invocation, var).
+
+@external
+input actual_return(invocation, var).
+
+@external
+static_call(invocation, method).
+
+@external
+input entry_point(method).
+
+@external
+input in_method(invocation, method).
+
+
+(* idb rules *)
+output var_points_to(var, heap).
+
+output call_graph(invocation, meth).
+
+output field_points_to(heap, field, heap).
+
+output interproc_assign(var, var).
+
+output reachable(method).
+
+call_graph(I, M) :- static_call(I, M).
+
+reachable(M) :- entry_point(M).
+reachable(M) :-
+  reachable(N),
+  in_method(I, N),
+  call_graph(I, M).
+
+(* V = new H *)
+var_points_to(V, H) :-
+  reachabele(M),
+  alloc(V, H, M).
+
+(* Vto = Vfrom *)
+var_points_to(Vto, H) :-
+  move(Vto, Vfrom),
+  var_points_to(Vfrom, H).
+
+(* Vbase.F = Vfrom *)
+field_points_to(Hbase, F, H) :-
+  store(Vbase, F, Vfrom),
+  var_points_to(Vfrom, H),
+  var_points_to(Vbase, Hbase).
+
+(* Vto = Vbase.F *)
+var_points_to(Vto, H) :-
+  load(Vto, Vbase, F),
+  var_points_to(Vbase, Hbase),
+  field_points_to(Hbase, F, H).
+
+(* M(... Vfrom ... ) *)
+interproc_assign(Vto, Vfrom) :-
+  call_graph(I, M),
+  formal_arg(M, N, Vto),
+  actual_arg(I, N, Vfrom).
+
+(* Vto = M(...) *)
+interproc_assign(Vto, Vfrom) :-
+  call_graph(I, M),
+  formal_return(M, Vfrom),
+  actual_return(I, Vto).
+
+
+
+(* Comments/Questions:
+
+
+*)
+
+
+
+
+
+
+
+
+
+
+
+
