@@ -1,0 +1,15 @@
+1. For ActualArg,
+   it's listed as:
+   (invo : I, n : N, arg : V) in the tutorial,
+   but listed as
+   (invocation, var)
+   from the previous program we worked on.
+
+   Which is correct? How do we know when we can avoid certain variables?
+
+
+2. In the case of returns, our method reflect doesn't actually return anything. So is there not technical return? But instead just some stores and loads, which capture the movement of the data?
+
+
+3. 
+
